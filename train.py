@@ -1,0 +1,58 @@
+from pytorch_lightning.callbacks import ModelCheckpoint, ModelPruning
+from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.strategies.ddp import DDPStrategy
+import os
+from core.pl_model import BaseModel, PruneModel
+import torch
+from config import *
+from settings import TrainParser
+import pytorch_lightning as pl
+
+if __name__ == '__main__':
+    args = TrainParser().get_args()
+    model_dir = os.path.join(MODEL_PATH, args.dataset, args.net, args.project)
+    os.makedirs(model_dir, exist_ok=True)
+
+    logtool = WandbLogger(name=args.name, save_dir=model_dir, project=args.project,
+                          config=args)
+
+    # ckpt = torch.load(r"E:\Experiments\cifar10\vgg16\prune_ln\wandb\run-20230429_182003-5km2w1wu\files\best.ckpt")
+    # datamodule=DataModule(args)
+    model = PruneModel(
+        model=args.net,
+        dataset=args.dataset,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        act=args.act,
+        optimizer=args.optimizer,
+        lr=args.lr,
+        lr_scheduler='milestones',
+        method=2,
+        amount=90,
+        skip=1
+    )
+
+    callbacks = [
+        ModelCheckpoint(monitor='val/top1', save_top_k=1, mode="max", save_on_train_epoch_end=False,
+                        dirpath=logtool.experiment.dir, filename="best"),
+    ]
+
+    trainer = pl.Trainer(devices="auto",
+                         precision=32,
+                         amp_backend="native",
+                         accelerator="cuda",
+                         strategy='dp',
+                         callbacks=callbacks,
+                         max_epochs=args.num_epoch,
+                         logger=logtool,
+                         # enable_progress_bar=args.npbar,
+                         inference_mode=False,
+                         accumulate_grad_batches=1,
+                         )
+    # if args.resume_id:
+    #     logtool.experiment.restore('best.ckpt', replace=True)
+    #     ckpt_path = os.path.join(logtool.experiment.dir, 'best.ckpt')
+    # else:
+    #     ckpt_path = None
+    trainer.fit(model)
+    model.save_model(logtool.experiment.dir)
