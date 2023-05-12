@@ -28,7 +28,7 @@ if __name__ == '__main__':
         lr=args.lr,
         lr_scheduler='milestones',
         method=2,
-        amount=90,
+        amount=0.01,
         skip=1
     )
 
@@ -55,4 +55,4 @@ if __name__ == '__main__':
     # else:
     #     ckpt_path = None
     trainer.fit(model)
-    model.save_model(logtool.experiment.dir)
+    model.save_model()

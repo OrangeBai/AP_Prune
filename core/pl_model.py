@@ -8,7 +8,7 @@ from models import build_model
 from core.utils import accuracy, init_optimizer, init_scheduler, set_gamma
 from torchvision import transforms
 from models.blocks import ConvBlock, LinearBlock
-
+import wandb
 
 class BaseModel(pl.LightningModule):
     def __init__(self, model, dataset, batch_size, num_workers, act, optimizer, lr, lr_scheduler):
@@ -101,6 +101,7 @@ class PruneModel(BaseModel):
             self.model_hook.set_up()
 
     def on_train_epoch_end(self) -> None:
+        info = {'step': self.global_step, 'epoch': self.current_epoch}
         if self.current_epoch in self.prune_milestones:
             global_entropy = self.model_hook.retrieve()
 
@@ -111,8 +112,19 @@ class PruneModel(BaseModel):
             computer_sparsity()
             adjusted_amount = compute_amount(global_entropy)
             for i, (name, block) in enumerate(self.valid_blocks()):
-                block.compute_mask(adjusted_amount[name] * self.amount / len(self.prune_milestones))
-                print(f"sparsity of block is {block.sparsity:.2f}")
+                block.compute_mask(adjusted_amount[name] * self.amount)
+                info['sparsity/layer_{0}'.format(i)] = block.sparsity()
+            info['sparsity/global'] = self.global_sparsity
+            wandb.log(info)
+
+    @property
+    def global_sparsity(self):
+        n_pruned = 0
+        n_element = 0
+        for i, (name, block) in enumerate(self.valid_blocks()):
+            n_pruned += block.num_pruned()
+            n_element += block.num_element()
+        return n_pruned / n_element
 
     def register_mask(self, block):
         pass

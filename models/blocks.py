@@ -43,7 +43,7 @@ class BaseBlock(nn.Module):
                 mask[im_score == 0] = 0
                 alive = im_score[mask != 0]
 
-                threshold = torch.quantile(alive.abs(), amount / 100, interpolation='linear')
+                threshold = torch.quantile(alive.abs(), amount, interpolation='linear')
                 # indices of units less than threshold
                 less_idx = abs(im_score) < threshold
                 # how many units remains
@@ -57,23 +57,22 @@ class BaseBlock(nn.Module):
                 # Apply new weight and mask
                 module.weight.data = torch.from_numpy(tensor * mask.cpu().numpy()).to(device)
 
-    @property
     def sparsity(self):
-        alive = 0
-        num_element = 0
-        for name, module in self.named_modules():
-            if hasattr(module, '_mask'):
-                alive += getattr(module, '_mask').sum()
-                num_element += getattr(module, '_mask').nelement()
-        return (1 - alive / num_element).cpu().numpy() * 100
+        return self.num_pruned() / self.num_element()
 
-    @property
     def num_element(self):
         num_element = 0
         for name, module in self.named_modules():
             if hasattr(module, '_mask'):
-                num_element += getattr(module, '_mask').nelement()
-        return num_element.cpu().numpy()
+                num_element += getattr(module, '_mask').nelement().cpu().numpy()
+        return num_element
+
+    def num_pruned(self):
+        num_pruned = 0
+        for name, module in self.named_modules():
+            if hasattr(module, '_mask'):
+                num_pruned += (getattr(module, 'weight') == 0).sum().cpu().numpy()
+        return num_pruned
 
 
 class LinearBlock(BaseBlock):
