@@ -34,7 +34,7 @@ class BaseModel(pl.LightningModule):
         return self.val_loader
 
     def configure_optimizers(self):
-        num_step = self.trainer.max_epochs * len(self.train_loader) / self.trainer.accumulate_grad_batches
+        num_step = self.trainer.max_epochs * len(self.train_loader)
         optimizer = init_optimizer(self.model, self.optimizer, lr=self.lr)
 
         lr_scheduler = init_scheduler(self.lr, self.lr_scheduler, num_step, optimizer=optimizer)
@@ -84,7 +84,8 @@ class PruneModel(BaseModel):
 
     def setup(self, stage: str) -> None:
         if stage == 'fit':
-            setattr(self, 'prune_milestones', [i for i in range(0, self.trainer.max_epochs - 1, self.skip)])
+            prune_milestone = [i for i in range(0, self.trainer.max_epochs - 1, self.skip)] if self.skip != 0 else []
+            setattr(self, 'prune_milestones', prune_milestone)
 
     def on_train_start(self) -> None:
         for name, block in self.valid_blocks():

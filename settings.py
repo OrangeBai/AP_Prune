@@ -18,8 +18,7 @@ class TrainParser:
 
         # step-wise or epoch-wise
         self.parser.add_argument('--num_workers', default=4, type=int)
-        self.parser.add_argument('--num_epoch', default=30, type=int)
-        self.parser.add_argument('--grad_accumulate', default=1, type=int)
+        self.parser.add_argument('--num_epoch', default=120, type=int)
         # scheduler and optimizer
         self.parser.add_argument('--lr_scheduler', default='milestones',
                                  choices=['milestones', 'exp', 'cyclic'])
@@ -27,6 +26,11 @@ class TrainParser:
         self.parser.add_argument('--lr', default=0.1, type=float)
         # training settings
         self.parser.add_argument('--npbar', default=True, action='store_false')
+
+        # prune settings
+        self.parser.add_argument('--amount', default=0.01, type=float)
+        self.parser.add_argument('--skip', default=1, type=int)
+        self.parser.add_argument('--method', default=0)
 
     def get_args(self):
         args = self.parser.parse_known_args(self.args)[0]

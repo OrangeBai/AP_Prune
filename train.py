@@ -27,9 +27,9 @@ if __name__ == '__main__':
         optimizer=args.optimizer,
         lr=args.lr,
         lr_scheduler='milestones',
-        method=2,
-        amount=0.01,
-        skip=1
+        method=args.method,
+        amount=args.amount,
+        skip=args.skip
     )
 
     callbacks = [
@@ -45,14 +45,8 @@ if __name__ == '__main__':
                          callbacks=callbacks,
                          max_epochs=args.num_epoch,
                          logger=logtool,
-                         # enable_progress_bar=args.npbar,
+                         enable_progress_bar=args.npbar,
                          inference_mode=False,
-                         accumulate_grad_batches=1,
                          )
-    # if args.resume_id:
-    #     logtool.experiment.restore('best.ckpt', replace=True)
-    #     ckpt_path = os.path.join(logtool.experiment.dir, 'best.ckpt')
-    # else:
-    #     ckpt_path = None
     trainer.fit(model)
     model.save_model()

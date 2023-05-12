@@ -64,7 +64,7 @@ class BaseBlock(nn.Module):
         num_element = 0
         for name, module in self.named_modules():
             if hasattr(module, '_mask'):
-                num_element += getattr(module, '_mask').nelement().cpu().numpy()
+                num_element += getattr(module, '_mask').nelement()
         return num_element
 
     def num_pruned(self):
