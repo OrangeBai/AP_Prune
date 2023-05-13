@@ -30,7 +30,7 @@ class TrainParser:
         # prune settings
         self.parser.add_argument('--amount', default=0.01, type=float)
         self.parser.add_argument('--skip', default=1, type=int)
-        self.parser.add_argument('--method', default=0)
+        self.parser.add_argument('--method', default=0, type=int)
         self.parser.add_argument('--amount_setting', default=0, type=int)
 
     def get_args(self):
