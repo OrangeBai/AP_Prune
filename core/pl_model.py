@@ -10,23 +10,22 @@ from core.utils import accuracy, init_optimizer, init_scheduler, set_gamma
 from torchvision import transforms
 from models.blocks import ConvBlock, LinearBlock
 import wandb
+from argparse import Namespace
 
 
 class BaseModel(pl.LightningModule):
-    def __init__(self, model, dataset, batch_size, num_workers, act, optimizer, lr, lr_scheduler):
+    def __init__(self, args: Namespace):
+        # model, dataset, batch_size, num_workers, act, optimizer, lr, lr_scheduler):
         """
         init base trainer
         """
         super().__init__()
-        self.model = build_model(model, act, dataset)
-        self.optimizer = optimizer
-        self.lr = lr
-        self.lr_scheduler = lr_scheduler
+        self.model = build_model(args.net, args.act, args.dataset)
         self.loss_function = torch.nn.CrossEntropyLoss()
         self.train_loader, self.val_loader = set_dataloader(
-            dataset,
-            batch_size=batch_size,
-            num_workers=num_workers
+            args.dataset,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers
         )
 
     def train_dataloader(self):
@@ -37,9 +36,9 @@ class BaseModel(pl.LightningModule):
 
     def configure_optimizers(self):
         num_step = self.trainer.max_epochs * len(self.train_loader)
-        optimizer = init_optimizer(self.model, self.optimizer, lr=self.lr)
+        optimizer = init_optimizer(self.model, self.args.optimizer, lr=self.args.lr)
 
-        lr_scheduler = init_scheduler(self.lr, self.lr_scheduler, num_step, optimizer=optimizer)
+        lr_scheduler = init_scheduler(self.args.lr, self.args.lr_scheduler, num_step, optimizer=optimizer)
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "step"}]
 
     def training_step(self, batch, batch_idx):
@@ -52,6 +51,10 @@ class BaseModel(pl.LightningModule):
         self.log('train/top1', top1, sync_dist=True)
         self.log('lr', self.lr, sync_dist=True)
         return loss
+
+    @property
+    def lr(self):
+        return self.optimizers().optimizer.param_groups[0]['lr']
 
     def validation_step(self, batch, batch_idx):
         images, labels = batch[0], batch[1]
@@ -76,17 +79,14 @@ class BaseModel(pl.LightningModule):
 
 
 class PruneModel(BaseModel):
-    def __init__(self, model, dataset, batch_size, num_workers, act, optimizer, lr, lr_scheduler, method,
-                 skip, amount, amount_setting):
-        super().__init__(model, dataset, batch_size, num_workers, act, optimizer, lr, lr_scheduler)
-        self.model_hook = EntropyHook(self, set_gamma(act), ratio=0.25)
-        self.method = method
-        self.amount = amount
-        self.skip = skip
+    def __init__(self, args):
+        self.args = args
+        super().__init__(args)
+        self.model_hook = EntropyHook(self, set_gamma(args.act), ratio=0.25)
 
     def setup(self, stage: str) -> None:
         if stage == 'fit':
-            prune_milestone = [i for i in range(0, self.trainer.max_epochs - 1, self.skip)] if self.skip != 0 else []
+            prune_milestone = [i for i in range(0, self.trainer.max_epochs - 1, self.args.skip)]
             setattr(self, 'prune_milestones', prune_milestone)
 
     def on_train_start(self) -> None:
@@ -94,10 +94,10 @@ class PruneModel(BaseModel):
             block.create_mask()
 
     def on_after_backward(self) -> None:
-        # for name, block in self.valid_blocks():
-        #     block.clean_grad()
-        for name, parameters in self.named_parameters():
-            parameters.grad[parameters == 0] = 0
+        for name, block in self.valid_blocks():
+            block.clean_grad()
+        # for name, parameters in self.named_parameters():
+        #     parameters.grad[ == 0] = 0
 
     def on_train_epoch_start(self) -> None:
         if self.current_epoch in self.prune_milestones:
@@ -110,14 +110,15 @@ class PruneModel(BaseModel):
 
             # compute and apply mask
             for name, block in self.valid_blocks():
-                compute_im_score(block, global_entropy[name], self.method)
+                compute_im_score(block, global_entropy[name], self.args.method)
 
-            adjusted_amount = compute_amount(global_entropy, self.amount_setting)
+            adjusted_amount = compute_amount(global_entropy, self.args.amount_setting)
             for i, (name, block) in enumerate(self.valid_blocks()):
-                block.compute_mask(adjusted_amount[name] * self.amount)
+                block.compute_mask(adjusted_amount[name] * self.args.amount)
                 info['sparsity/layer_{0}'.format(i)] = block.sparsity()
             info['sparsity/global'] = self.global_sparsity
             wandb.log(info)
+        self.model_hook.remove()
 
     @property
     def global_sparsity(self):

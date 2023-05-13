@@ -16,22 +16,10 @@ if __name__ == '__main__':
     logtool = WandbLogger(name=args.name, save_dir=model_dir, project=args.project,
                           config=args)
 
-    # ckpt = torch.load(r"E:\Experiments\cifar10\vgg16\prune_ln\wandb\run-20230429_182003-5km2w1wu\files\best.ckpt")
-    # datamodule=DataModule(args)
-    model = PruneModel(
-        model=args.net,
-        dataset=args.dataset,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
-        act=args.act,
-        optimizer=args.optimizer,
-        lr=args.lr,
-        lr_scheduler='milestones',
-        method=args.method,
-        amount=args.amount,
-        amount_setting=args.amount_setting,
-        skip=args.skip
-    )
+    if args.skip == 0:
+        model = BaseModel(args)
+    else:
+        model = PruneModel(args)
 
     callbacks = [
         ModelCheckpoint(monitor='val/top1', save_top_k=1, mode="max", save_on_train_epoch_end=False,
