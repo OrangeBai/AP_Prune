@@ -4,11 +4,13 @@ import os
 from core.prune import EntropyHook
 from core.dataloader import set_dataloader
 import torch
+import math
 from models import build_model
 from core.utils import accuracy, init_optimizer, init_scheduler, set_gamma
 from torchvision import transforms
 from models.blocks import ConvBlock, LinearBlock
 import wandb
+
 
 class BaseModel(pl.LightningModule):
     def __init__(self, model, dataset, batch_size, num_workers, act, optimizer, lr, lr_scheduler):
@@ -75,7 +77,7 @@ class BaseModel(pl.LightningModule):
 
 class PruneModel(BaseModel):
     def __init__(self, model, dataset, batch_size, num_workers, act, optimizer, lr, lr_scheduler, method,
-                 skip, amount):
+                 skip, amount, amount_setting):
         super().__init__(model, dataset, batch_size, num_workers, act, optimizer, lr, lr_scheduler)
         self.model_hook = EntropyHook(self, set_gamma(act), ratio=0.25)
         self.method = method
@@ -110,8 +112,7 @@ class PruneModel(BaseModel):
             for name, block in self.valid_blocks():
                 compute_im_score(block, global_entropy[name], self.method)
 
-            computer_sparsity()
-            adjusted_amount = compute_amount(global_entropy)
+            adjusted_amount = compute_amount(global_entropy, self.amount_setting)
             for i, (name, block) in enumerate(self.valid_blocks()):
                 block.compute_mask(adjusted_amount[name] * self.amount)
                 info['sparsity/layer_{0}'.format(i)] = block.sparsity()
@@ -145,24 +146,20 @@ def compute_im_score(block, entropy, method):
     return
 
 
-def compute_amount(global_entropy):
+def compute_amount(global_entropy, amount_setting):
     total_score = 0
     allocation = {}
-    for block_name, block_entropy in global_entropy.items():
-        layer_avg = sum([layer_entropy.mean() for layer_entropy in block_entropy.values()])
-        total_score += 1 / layer_avg
-    for block_name, block_entropy in global_entropy.items():
-        layer_avg = sum([layer_entropy.mean() for layer_entropy in block_entropy.values()])
-        allocation[block_name] = (1 / layer_avg) / (total_score / len(global_entropy))
+    if amount_setting == 0:
+        for block_name in global_entropy.keys():
+            allocation[block_name] = 1
+    else:
+        for block_name, block_entropy in global_entropy.items():
+            layer_avg = sum([layer_entropy.mean() for layer_entropy in block_entropy.values()])
+            total_score += math.sqrt(layer_avg)
+        for block_name, block_entropy in global_entropy.items():
+            layer_avg = sum([layer_entropy.mean() for layer_entropy in block_entropy.values()])
+            allocation[block_name] = total_score / len(global_entropy) / math.sqrt(layer_avg)
     return allocation
-
-
-def computer_sparsity():
-    pass
-
-
-def compute_mask(block, entropy, amount):
-    pass
 
 
 def compute_importance(weight, channel_entropy, eta):

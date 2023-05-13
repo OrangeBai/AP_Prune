@@ -29,6 +29,7 @@ if __name__ == '__main__':
         lr_scheduler='milestones',
         method=args.method,
         amount=args.amount,
+        amount_setting=args.amount_setting,
         skip=args.skip
     )
 
