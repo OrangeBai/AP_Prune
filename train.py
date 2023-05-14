@@ -16,21 +16,10 @@ if __name__ == '__main__':
     logtool = WandbLogger(name=args.name, save_dir=model_dir, project=args.project,
                           config=args)
 
-    # ckpt = torch.load(r"E:\Experiments\cifar10\vgg16\prune_ln\wandb\run-20230429_182003-5km2w1wu\files\best.ckpt")
-    # datamodule=DataModule(args)
-    model = PruneModel(
-        model=args.net,
-        dataset=args.dataset,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
-        act=args.act,
-        optimizer=args.optimizer,
-        lr=args.lr,
-        lr_scheduler='milestones',
-        method=2,
-        amount=90,
-        skip=1
-    )
+    if args.skip == 0:
+        model = BaseModel(args)
+    else:
+        model = PruneModel(args)
 
     callbacks = [
         ModelCheckpoint(monitor='val/top1', save_top_k=1, mode="max", save_on_train_epoch_end=False,
@@ -45,14 +34,8 @@ if __name__ == '__main__':
                          callbacks=callbacks,
                          max_epochs=args.num_epoch,
                          logger=logtool,
-                         # enable_progress_bar=args.npbar,
+                         enable_progress_bar=args.npbar,
                          inference_mode=False,
-                         accumulate_grad_batches=1,
                          )
-    # if args.resume_id:
-    #     logtool.experiment.restore('best.ckpt', replace=True)
-    #     ckpt_path = os.path.join(logtool.experiment.dir, 'best.ckpt')
-    # else:
-    #     ckpt_path = None
     trainer.fit(model)
-    model.save_model(logtool.experiment.dir)
+    model.save_model()

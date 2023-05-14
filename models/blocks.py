@@ -31,25 +31,34 @@ class BaseBlock(nn.Module):
                 device = module.weight.grad.data.device
                 mask = module.get_buffer('_mask')
                 grad_tensor = module.weight.grad.data
+                weight_tensor = module.weight.data
+
                 grad_tensor[mask == 0] = 0
+                weight_tensor[mask == 0] = 0
+
+                module.weight.data = weight_tensor.detach().clone().to(device)
                 module.weight.grad.data = grad_tensor.detach().clone().to(device)
 
     def compute_mask(self, amount):
         for name, module in self.named_modules():
             if hasattr(module, 'weight'):
-                assert hasattr(module, '_im_score') and hasattr(module, '_mask')
                 im_score = module.get_buffer('_im_score')
-                mask = module.get_buffer('_mask')
-                mask[im_score == 0] = 0
-                alive = im_score[mask != 0]
 
-                threshold = torch.quantile(alive.abs(), amount / 100, interpolation='linear')
+                target_amount = int(amount * module.weight.nelement())
+                mask = module.get_buffer('_mask')
+
+                this_amount = target_amount - int((mask == 0).sum())
+
+                alive = im_score[mask != 0]
+                threshold = torch.quantile(alive.abs(), this_amount / len(alive), interpolation='higher')
                 # indices of units less than threshold
                 less_idx = abs(im_score) < threshold
                 # how many units remains
-                # all_equal_indices = np.where(abs(im_score) == threshold)
-                # selected = np.random.choice(len(all_equal_indices[0]), equal_to, replace=False)
-
+                equal_to = this_amount - int(less_idx.sum().data)
+                if equal_to > 0:
+                    all_equal_indices = np.where((abs(im_score) == threshold).cpu().detach().numpy())
+                    selected = np.random.choice(len(all_equal_indices[0]), equal_to, replace=False)
+                    mask[[idx[selected] for idx in all_equal_indices]] = 0
                 mask[less_idx] = 0
                 module.register_buffer('_mask', mask)
                 tensor = module.weight.data.cpu().numpy()
@@ -57,23 +66,22 @@ class BaseBlock(nn.Module):
                 # Apply new weight and mask
                 module.weight.data = torch.from_numpy(tensor * mask.cpu().numpy()).to(device)
 
-    @property
     def sparsity(self):
-        alive = 0
-        num_element = 0
-        for name, module in self.named_modules():
-            if hasattr(module, '_mask'):
-                alive += getattr(module, '_mask').sum()
-                num_element += getattr(module, '_mask').nelement()
-        return (1 - alive / num_element).cpu().numpy() * 100
+        return self.num_pruned() / self.num_element()
 
-    @property
     def num_element(self):
         num_element = 0
         for name, module in self.named_modules():
             if hasattr(module, '_mask'):
                 num_element += getattr(module, '_mask').nelement()
-        return num_element.cpu().numpy()
+        return num_element
+
+    def num_pruned(self):
+        num_pruned = 0
+        for name, module in self.named_modules():
+            if hasattr(module, '_mask'):
+                num_pruned += (getattr(module, 'weight') == 0).sum().cpu().numpy()
+        return num_pruned
 
 
 class LinearBlock(BaseBlock):

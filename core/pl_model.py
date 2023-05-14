@@ -4,27 +4,29 @@ import os
 from core.prune import EntropyHook
 from core.dataloader import set_dataloader
 import torch
+import math
 from models import build_model
 from core.utils import accuracy, init_optimizer, init_scheduler, set_gamma
 from torchvision import transforms
 from models.blocks import ConvBlock, LinearBlock
+import wandb
+from argparse import Namespace
 
 
 class BaseModel(pl.LightningModule):
-    def __init__(self, model, dataset, batch_size, num_workers, act, optimizer, lr, lr_scheduler):
+    def __init__(self, args: Namespace):
+        # model, dataset, batch_size, num_workers, act, optimizer, lr, lr_scheduler):
         """
         init base trainer
         """
         super().__init__()
-        self.model = build_model(model, act, dataset)
-        self.optimizer = optimizer
-        self.lr = lr
-        self.lr_scheduler = lr_scheduler
+        self.args = args
+        self.model = build_model(args.net, args.act, args.dataset)
         self.loss_function = torch.nn.CrossEntropyLoss()
         self.train_loader, self.val_loader = set_dataloader(
-            dataset,
-            batch_size=batch_size,
-            num_workers=num_workers
+            args.dataset,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers
         )
 
     def train_dataloader(self):
@@ -34,10 +36,10 @@ class BaseModel(pl.LightningModule):
         return self.val_loader
 
     def configure_optimizers(self):
-        num_step = self.trainer.max_epochs * len(self.train_loader) / self.trainer.accumulate_grad_batches
-        optimizer = init_optimizer(self.model, self.optimizer, lr=self.lr)
+        num_step = self.trainer.max_epochs * len(self.train_loader)
+        optimizer = init_optimizer(self.model, self.args.optimizer, lr=self.args.lr)
 
-        lr_scheduler = init_scheduler(self.lr, self.lr_scheduler, num_step, optimizer=optimizer)
+        lr_scheduler = init_scheduler(self.args.lr, self.args.lr_scheduler, num_step, optimizer=optimizer)
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "step"}]
 
     def training_step(self, batch, batch_idx):
@@ -50,6 +52,10 @@ class BaseModel(pl.LightningModule):
         self.log('train/top1', top1, sync_dist=True)
         self.log('lr', self.lr, sync_dist=True)
         return loss
+
+    @property
+    def lr(self):
+        return self.optimizers().optimizer.param_groups[0]['lr']
 
     def validation_step(self, batch, batch_idx):
         images, labels = batch[0], batch[1]
@@ -74,45 +80,56 @@ class BaseModel(pl.LightningModule):
 
 
 class PruneModel(BaseModel):
-    def __init__(self, model, dataset, batch_size, num_workers, act, optimizer, lr, lr_scheduler, method,
-                 skip, amount):
-        super().__init__(model, dataset, batch_size, num_workers, act, optimizer, lr, lr_scheduler)
-        self.model_hook = EntropyHook(self, set_gamma(act), ratio=0.25)
-        self.method = method
-        self.amount = amount
-        self.skip = skip
+    def __init__(self, args):
+        super().__init__(args)
+        self.model_hook = EntropyHook(self, set_gamma(args.act), ratio=0.25)
 
     def setup(self, stage: str) -> None:
         if stage == 'fit':
-            setattr(self, 'prune_milestones', [i for i in range(0, self.trainer.max_epochs - 1, self.skip)])
+            prune_milestone = [i for i in range(0, self.trainer.max_epochs - self.args.fine_tune, self.args.skip)]
+            prune_dict = {num_epoch: self.args.amount * (i + 1) / len(prune_milestone) for i, num_epoch
+                          in enumerate(prune_milestone)}
+            setattr(self, 'prune_dict', prune_dict)
 
     def on_train_start(self) -> None:
         for name, block in self.valid_blocks():
             block.create_mask()
 
     def on_after_backward(self) -> None:
-        # for name, block in self.valid_blocks():
-        #     block.clean_grad()
-        for name, parameters in self.named_parameters():
-            parameters.grad[parameters == 0] = 0
+        for name, block in self.valid_blocks():
+            block.clean_grad()
+        # for name, parameters in self.named_parameters():
+        #     parameters.grad[ == 0] = 0
 
     def on_train_epoch_start(self) -> None:
-        if self.current_epoch in self.prune_milestones:
+        if self.current_epoch in self.prune_dict.keys():
             self.model_hook.set_up()
 
     def on_train_epoch_end(self) -> None:
-        if self.current_epoch in self.prune_milestones:
+        info = {'step': self.global_step, 'epoch': self.current_epoch}
+        if self.current_epoch in self.prune_dict.keys():
             global_entropy = self.model_hook.retrieve()
 
             # compute and apply mask
             for name, block in self.valid_blocks():
-                compute_im_score(block, global_entropy[name], self.method)
+                compute_im_score(block, global_entropy[name], self.args.method)
 
-            computer_sparsity()
-            adjusted_amount = compute_amount(global_entropy)
+            adjusted_amount = compute_amount(global_entropy, self.args.amount_setting)
             for i, (name, block) in enumerate(self.valid_blocks()):
-                block.compute_mask(adjusted_amount[name] * self.amount / len(self.prune_milestones))
-                print(f"sparsity of block is {block.sparsity:.2f}")
+                block.compute_mask(adjusted_amount[name] * self.prune_dict[self.current_epoch])
+                info['sparsity/layer_{0}'.format(i)] = block.sparsity()
+            info['sparsity/global'] = self.global_sparsity
+            wandb.log(info)
+        self.model_hook.remove()
+
+    @property
+    def global_sparsity(self):
+        n_pruned = 0
+        n_element = 0
+        for i, (name, block) in enumerate(self.valid_blocks()):
+            n_pruned += block.num_pruned()
+            n_element += block.num_element()
+        return n_pruned / n_element
 
     def register_mask(self, block):
         pass
@@ -132,24 +149,20 @@ def compute_im_score(block, entropy, method):
     return
 
 
-def compute_amount(global_entropy):
+def compute_amount(global_entropy, amount_setting):
     total_score = 0
     allocation = {}
-    for block_name, block_entropy in global_entropy.items():
-        layer_avg = sum([layer_entropy.mean() for layer_entropy in block_entropy.values()])
-        total_score += 1 / layer_avg
-    for block_name, block_entropy in global_entropy.items():
-        layer_avg = sum([layer_entropy.mean() for layer_entropy in block_entropy.values()])
-        allocation[block_name] = (1 / layer_avg) / (total_score / len(global_entropy))
+    if amount_setting == 0:
+        for block_name in global_entropy.keys():
+            allocation[block_name] = 1
+    else:
+        for block_name, block_entropy in global_entropy.items():
+            layer_avg = sum([layer_entropy.mean() for layer_entropy in block_entropy.values()])
+            total_score += math.sqrt(layer_avg)
+        for block_name, block_entropy in global_entropy.items():
+            layer_avg = sum([layer_entropy.mean() for layer_entropy in block_entropy.values()])
+            allocation[block_name] = total_score / len(global_entropy) / math.sqrt(layer_avg)
     return allocation
-
-
-def computer_sparsity():
-    pass
-
-
-def compute_mask(block, entropy, amount):
-    pass
 
 
 def compute_importance(weight, channel_entropy, eta):
