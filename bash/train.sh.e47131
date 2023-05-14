@@ -1,84 +1,0 @@
-wandb: Currently logged in as: orangebai. Use `wandb login --relogin` to force relogin
-wandb: wandb version 0.15.2 is available!  To upgrade, please run:
-wandb:  $ pip install wandb --upgrade
-wandb: Tracking run with wandb version 0.13.4
-wandb: Run data is saved locally in /storage/hpc/52/jiangz9/Experiments/AP_Prune/cifar10/vgg16/prune_l1/wandb/run-20230514_151805-32c34px0
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run l1_0_
-wandb: ⭐️ View project at https://wandb.ai/orangebai/prune_l1
-wandb: 🚀 View run at https://wandb.ai/orangebai/prune_l1/runs/32c34px0
-GPU available: True (cuda), used: True
-TPU available: False, using: 0 TPU cores
-IPU available: False, using: 0 IPUs
-HPU available: False, using: 0 HPUs
-/mmfs1/storage/users/jiangz9/pytorch/lib/python3.8/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:604: UserWarning: Checkpoint directory /mmfs1/storage/users/jiangz9/Experiments/AP_Prune/cifar10/vgg16/prune_l1/wandb/run-20230514_151805-32c34px0/files exists and is not empty.
-  rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
-LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
-
-  | Name          | Type             | Params
----------------------------------------------------
-0 | model         | VGG16            | 33.7 M
-1 | loss_function | CrossEntropyLoss | 0     
----------------------------------------------------
-33.7 M    Trainable params
-0         Non-trainable params
-33.7 M    Total params
-134.635   Total estimated model params size (MB)
-`Trainer.fit` stopped: `max_epochs=120` reached.
-wandb: Waiting for W&B process to finish... (success).
-wandb: - 0.001 MB of 0.001 MB uploaded (0.000 MB deduped)wandb: \ 0.001 MB of 769.759 MB uploaded (0.000 MB deduped)wandb: | 69.346 MB of 769.760 MB uploaded (0.000 MB deduped)wandb: / 213.705 MB of 769.760 MB uploaded (0.000 MB deduped)wandb: - 359.424 MB of 769.760 MB uploaded (0.000 MB deduped)wandb: \ 498.268 MB of 769.760 MB uploaded (0.000 MB deduped)wandb: | 632.354 MB of 769.760 MB uploaded (0.000 MB deduped)wandb: / 740.619 MB of 769.760 MB uploaded (0.000 MB deduped)wandb: - 769.760 MB of 769.760 MB uploaded (0.000 MB deduped)wandb: 
-wandb: Run history:
-wandb:               epoch ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▆▇▇▇▇▇███
-wandb:                  lr ████████████████▂▂▂▂▂▂▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁
-wandb:     sparsity/global ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:    sparsity/layer_0 ▁▁▁▁▂▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:    sparsity/layer_1 ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:   sparsity/layer_10 ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:   sparsity/layer_11 ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:   sparsity/layer_12 ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:   sparsity/layer_13 ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:   sparsity/layer_14 ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:    sparsity/layer_2 ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:    sparsity/layer_3 ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:    sparsity/layer_4 ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:    sparsity/layer_5 ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:    sparsity/layer_6 ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:    sparsity/layer_7 ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:    sparsity/layer_8 ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:    sparsity/layer_9 ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:                step ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:          train/loss █▆▅▄▃▂▃▃▂▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
-wandb:          train/top1 ▁▃▄▅▆▇▆▆▇▇▇▇▇▇▇█████████████████████████
-wandb: trainer/global_step ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▅▆▆▆▆▆▆▇▇▇▇▇███
-wandb:            val/loss █▅▄▄▂▂▂▁▂▂▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
-wandb:            val/top1 ▁▄▅▅▆▇▇▇▇▇▇▇▇▇▇▇████████████████████████
-wandb: 
-wandb: Run summary:
-wandb:               epoch 119
-wandb:                  lr 0.0005
-wandb:     sparsity/global 0.02
-wandb:    sparsity/layer_0 0.01953
-wandb:    sparsity/layer_1 0.01998
-wandb:   sparsity/layer_10 0.02
-wandb:   sparsity/layer_11 0.02
-wandb:   sparsity/layer_12 0.02
-wandb:   sparsity/layer_13 0.02
-wandb:   sparsity/layer_14 0.02
-wandb:    sparsity/layer_2 0.01998
-wandb:    sparsity/layer_3 0.02
-wandb:    sparsity/layer_4 0.02
-wandb:    sparsity/layer_5 0.02
-wandb:    sparsity/layer_6 0.02
-wandb:    sparsity/layer_7 0.02
-wandb:    sparsity/layer_8 0.02
-wandb:    sparsity/layer_9 0.02
-wandb:                step 39100
-wandb:          train/loss 0.0272
-wandb:          train/top1 98.4375
-wandb: trainer/global_step 46919
-wandb:            val/loss 0.44512
-wandb:            val/top1 89.57
-wandb: 
-wandb: Synced l1_0_: https://wandb.ai/orangebai/prune_l1/runs/32c34px0
-wandb: Synced 6 W&B file(s), 0 media file(s), 0 artifact file(s) and 2 other file(s)
-wandb: Find logs at: /storage/hpc/52/jiangz9/Experiments/AP_Prune/cifar10/vgg16/prune_l1/wandb/run-20230514_151805-32c34px0/logs
