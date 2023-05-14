@@ -21,8 +21,8 @@ class TrainParser:
         self.parser.add_argument('--num_epoch', default=120, type=int)
         # scheduler and optimizer
         self.parser.add_argument('--lr_scheduler', default='milestones',
-                                 choices=['milestones', 'exp', 'cyclic'])
-        self.parser.add_argument('--optimizer', default='Adam', choices=['SGD', 'Adam', 'static'])
+                                 choices=['milestones', 'exp', 'cyclic', 'static'])
+        self.parser.add_argument('--optimizer', default='Adam', choices=['SGD', 'Adam'])
         self.parser.add_argument('--lr', default=1.2e-3, type=float)
         # training settings
         self.parser.add_argument('--npbar', default=True, action='store_false')
