@@ -80,7 +80,7 @@ def init_optimizer(model, optimizer, lr):
     if optimizer == 'SGD':
         optimizer = torch.optim.SGD(model.parameters(), lr=lr + 1e-8)
     elif optimizer == 'Adam':
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr + 1e-8, betas=(0.9, 0.99))
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr + 1e-8, weight_decay=1e-4)
     else:
         raise NameError('Optimizer {0} not found'.format(optimizer))
     return optimizer

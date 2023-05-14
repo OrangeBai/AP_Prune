@@ -32,6 +32,7 @@ class BaseBlock(nn.Module):
                 mask = module.get_buffer('_mask')
                 grad_tensor = module.weight.grad.data
                 grad_tensor[mask == 0] = 0
+                module.weight[mask == 0] = 0
                 module.weight.grad.data = grad_tensor.detach().clone().to(device)
 
     def compute_mask(self, amount):
@@ -42,13 +43,15 @@ class BaseBlock(nn.Module):
                 mask = module.get_buffer('_mask')
                 alive = im_score[mask != 0]
 
-                threshold = torch.quantile(alive.abs(), amount, interpolation='linear')
+                threshold = torch.quantile(alive.abs(), amount, interpolation='higher')
                 # indices of units less than threshold
                 less_idx = abs(im_score) < threshold
                 # how many units remains
-                # all_equal_indices = np.where(abs(im_score) == threshold)
-                # selected = np.random.choice(len(all_equal_indices[0]), equal_to, replace=False)
-
+                equal_to = int(len(alive) * amount) - int(less_idx.sum().data)
+                if equal_to > 0:
+                    all_equal_indices = np.where((abs(im_score) == threshold).cpu().detach().numpy())
+                    selected = np.random.choice(len(all_equal_indices[0]), equal_to, replace=False)
+                    mask[[idx[selected] for idx in all_equal_indices]] = 0
                 mask[less_idx] = 0
                 module.register_buffer('_mask', mask)
                 tensor = module.weight.data.cpu().numpy()
