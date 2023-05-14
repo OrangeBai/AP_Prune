@@ -31,8 +31,12 @@ class BaseBlock(nn.Module):
                 device = module.weight.grad.data.device
                 mask = module.get_buffer('_mask')
                 grad_tensor = module.weight.grad.data
+                weight_tensor = module.weight.data
+
                 grad_tensor[mask == 0] = 0
-                module.weight[mask == 0] = 0
+                weight_tensor[mask == 0] = 0
+
+                module.weight.data = weight_tensor.detach().clone().to(device)
                 module.weight.grad.data = grad_tensor.detach().clone().to(device)
 
     def compute_mask(self, amount):
