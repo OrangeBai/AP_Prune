@@ -42,16 +42,19 @@ class BaseBlock(nn.Module):
     def compute_mask(self, amount):
         for name, module in self.named_modules():
             if hasattr(module, 'weight'):
-                assert hasattr(module, '_im_score') and hasattr(module, '_mask')
                 im_score = module.get_buffer('_im_score')
-                mask = module.get_buffer('_mask')
-                alive = im_score[mask != 0]
 
-                threshold = torch.quantile(alive.abs(), amount, interpolation='higher')
+                target_amount = int(amount * module.weight.nelement())
+                mask = module.get_buffer('_mask')
+
+                this_amount = target_amount - int((mask == 0).sum())
+
+                alive = im_score[mask != 0]
+                threshold = torch.quantile(alive.abs(), this_amount / len(alive), interpolation='higher')
                 # indices of units less than threshold
                 less_idx = abs(im_score) < threshold
                 # how many units remains
-                equal_to = int(len(alive) * amount) - int(less_idx.sum().data)
+                equal_to = this_amount - int(less_idx.sum().data)
                 if equal_to > 0:
                     all_equal_indices = np.where((abs(im_score) == threshold).cpu().detach().numpy())
                     selected = np.random.choice(len(all_equal_indices[0]), equal_to, replace=False)

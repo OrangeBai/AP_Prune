@@ -20,6 +20,7 @@ class BaseModel(pl.LightningModule):
         init base trainer
         """
         super().__init__()
+        self.args = args
         self.model = build_model(args.net, args.act, args.dataset)
         self.loss_function = torch.nn.CrossEntropyLoss()
         self.train_loader, self.val_loader = set_dataloader(
@@ -80,14 +81,15 @@ class BaseModel(pl.LightningModule):
 
 class PruneModel(BaseModel):
     def __init__(self, args):
-        self.args = args
         super().__init__(args)
         self.model_hook = EntropyHook(self, set_gamma(args.act), ratio=0.25)
 
     def setup(self, stage: str) -> None:
         if stage == 'fit':
-            prune_milestone = [i for i in range(0, self.trainer.max_epochs - 1, self.args.skip)]
-            setattr(self, 'prune_milestones', prune_milestone)
+            prune_milestone = [i for i in range(0, self.trainer.max_epochs - self.args.fine_tune, self.args.skip)]
+            prune_dict = {num_epoch: self.args.amount * (i + 1) / len(prune_milestone) for i, num_epoch
+                          in enumerate(prune_milestone)}
+            setattr(self, 'prune_dict', prune_dict)
 
     def on_train_start(self) -> None:
         for name, block in self.valid_blocks():
@@ -100,12 +102,12 @@ class PruneModel(BaseModel):
         #     parameters.grad[ == 0] = 0
 
     def on_train_epoch_start(self) -> None:
-        if self.current_epoch in self.prune_milestones:
+        if self.current_epoch in self.prune_dict.keys():
             self.model_hook.set_up()
 
     def on_train_epoch_end(self) -> None:
         info = {'step': self.global_step, 'epoch': self.current_epoch}
-        if self.current_epoch in self.prune_milestones:
+        if self.current_epoch in self.prune_dict.keys():
             global_entropy = self.model_hook.retrieve()
 
             # compute and apply mask
@@ -114,7 +116,7 @@ class PruneModel(BaseModel):
 
             adjusted_amount = compute_amount(global_entropy, self.args.amount_setting)
             for i, (name, block) in enumerate(self.valid_blocks()):
-                block.compute_mask(adjusted_amount[name] * self.args.amount)
+                block.compute_mask(adjusted_amount[name] * self.prune_dict[self.current_epoch])
                 info['sparsity/layer_{0}'.format(i)] = block.sparsity()
             info['sparsity/global'] = self.global_sparsity
             wandb.log(info)
