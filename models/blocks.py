@@ -40,7 +40,6 @@ class BaseBlock(nn.Module):
                 assert hasattr(module, '_im_score') and hasattr(module, '_mask')
                 im_score = module.get_buffer('_im_score')
                 mask = module.get_buffer('_mask')
-                mask[im_score == 0] = 0
                 alive = im_score[mask != 0]
 
                 threshold = torch.quantile(alive.abs(), amount, interpolation='linear')
