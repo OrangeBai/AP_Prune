@@ -9,7 +9,7 @@
 source ~/.bashrc
 conda activate /mmfs1/storage/users/jiangz9/pytorch/
 sleep 2
-cd /mmfs1/home/users/jiangz9/Code/APCT
+cd /mmfs1/home/users/jiangz9/Code/AP_Prune
 
 VAR=""
 for ARG in "$*";do
