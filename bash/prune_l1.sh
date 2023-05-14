@@ -5,7 +5,7 @@ qsub train.sh --dataset cifar10 --net VGG16 --project prune_l1 --name benchmark 
 
 for method in 0  3 4 5
 do
-	for amount in 0.01 0.02
+	for amount in 0.4 0.6 0.8 0.95
 	do
 	qsub train.sh --dataset cifar10 --net vgg16 --project prune_l1 --name l1_${method}_${total_amount} --num_epoch 120 --amount ${amount} \
         --lr_scheduler milestones --method ${method} --activation ReLU --npbar --amount_setting 0

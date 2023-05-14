@@ -1,0 +1,42 @@
+--dataset cifar10 --net vgg16 --project prune_l1 --name l1_5_0.95 --num_epoch 120 --amount 0.95 --lr_scheduler static --method 5 --activation ReLU --npbar --amount_setting 0 --skip 2
+Files already downloaded and verified
+Files already downloaded and verified
+Successfully retrieved statistics for job: 47128.undefined-gpu0-gpu06-jiangz9. 
++------------------------------------------------------------------------------+
+| GPU ID: 0                                                                    |
++====================================+=========================================+
+|-----  Execution Stats  ------------+-----------------------------------------|
+| Start Time                         | Sun May 14 15:02:41 2023                |
+| End Time                           | Sun May 14 15:05:23 2023                |
+| Total Execution Time (sec)         | 162.15                                  |
+| No. of Processes                   | 1                                       |
++-----  Performance Stats  ----------+-----------------------------------------+
+| Energy Consumed (Joules)           | 10615                                   |
+| Power Usage (Watts)                | Avg: 63.12, Max: 145.349, Min: 22.65    |
+| Max GPU Memory Used (bytes)        | 3069181952                              |
+| SM Clock (MHz)                     | Avg: 1147, Max: 1380, Min: 135          |
+| Memory Clock (MHz)                 | Avg: 877, Max: 877, Min: 877            |
+| SM Utilization (%)                 | Avg: 32, Max: 78, Min: 0                |
+| Memory Utilization (%)             | Avg: 18, Max: 53, Min: 0                |
+| PCIe Rx Bandwidth (megabytes)      | Avg: N/A, Max: N/A, Min: N/A            |
+| PCIe Tx Bandwidth (megabytes)      | Avg: N/A, Max: N/A, Min: N/A            |
++-----  Event Stats  ----------------+-----------------------------------------+
+| Single Bit ECC Errors              | 0                                       |
+| Double Bit ECC Errors              | 0                                       |
+| PCIe Replay Warnings               | 0                                       |
+| Critical XID Errors                | 0                                       |
++-----  Slowdown Stats  -------------+-----------------------------------------+
+| Due to - Power (%)                 | 0                                       |
+|        - Thermal (%)               | 0                                       |
+|        - Reliability (%)           | Not Supported                           |
+|        - Board Limit (%)           | Not Supported                           |
+|        - Low Utilization (%)       | Not Supported                           |
+|        - Sync Boost (%)            | 0                                       |
++--  Compute Process Utilization  ---+-----------------------------------------+
+| PID                                | 242901                                  |
+|     Avg SM Utilization (%)         | 2                                       |
+|     Avg Memory Utilization (%)     | 1                                       |
++-----  Overall Health  -------------+-----------------------------------------+
+| Overall Health                     | Healthy                                 |
++------------------------------------+-----------------------------------------+
+
