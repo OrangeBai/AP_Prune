@@ -23,7 +23,7 @@ class TrainParser:
         self.parser.add_argument('--lr_scheduler', default='milestones',
                                  choices=['milestones', 'exp', 'cyclic', 'static'])
         self.parser.add_argument('--optimizer', default='SGD', choices=['SGD', 'Adam'])
-        self.parser.add_argument('--lr', default=0.05, type=float)
+        self.parser.add_argument('--lr', default=0.1, type=float)
         # training settings
         self.parser.add_argument('--npbar', default=True, action='store_false')
 
