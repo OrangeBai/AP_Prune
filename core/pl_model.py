@@ -13,6 +13,7 @@ import wandb
 from argparse import Namespace
 import numpy as np
 
+
 class BaseModel(pl.LightningModule):
     def __init__(self, args: Namespace):
         # model, dataset, batch_size, num_workers, act, optimizer, lr, lr_scheduler):
@@ -126,7 +127,8 @@ class PruneModel(BaseModel):
         if self.args.amount_setting == 0:
             return {block_name: 1 for block_name, _ in self.valid_blocks()}
         layer_entropy = {
-            name: avg_block(global_entropy[name]) for name, block in self.valid_blocks() if block.sparsity() < 0.9
+            name: avg_block(global_entropy[name]) for name, block in self.valid_blocks() if
+            self.prune_dict[self.current_epoch] < 0.95
         }
         if len(layer_entropy) == 0: return {}
         global_avg = np.mean(list(layer_entropy.values()))
