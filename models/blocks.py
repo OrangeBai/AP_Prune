@@ -39,7 +39,7 @@ class BaseBlock(nn.Module):
                 module.weight.data = weight_tensor.detach().clone().to(device)
                 module.weight.grad.data = grad_tensor.detach().clone().to(device)
 
-    def compute_mask(self, amount):
+    def compute_l1_mask(self, amount):
         for name, module in self.named_modules():
             if hasattr(module, 'weight'):
                 im_score = module.get_buffer('_im_score')
