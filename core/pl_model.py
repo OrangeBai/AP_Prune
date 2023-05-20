@@ -127,12 +127,13 @@ class PruneModel(BaseModel):
         if self.args.amount_setting == 0:
             return {block_name: 1 for block_name, _ in self.valid_blocks()}
         layer_entropy = {
-            name: avg_block(global_entropy[name]) for name, block in self.valid_blocks() if
-            self.prune_dict[self.current_epoch] < 0.95
+            name: avg_block(global_entropy[name]) for name, block in self.valid_blocks() if block.sparsity() < 0.9
         }
         if len(layer_entropy) == 0: return {}
         global_avg = np.mean(list(layer_entropy.values()))
-        return {name: global_avg / value for name, value in layer_entropy.items()}
+        return {name: global_avg / value for name, value in layer_entropy.items()
+                if global_avg / value * self.prune_dict[self.current_epoch] < 0.95
+                }
 
     @property
     def global_sparsity(self):
