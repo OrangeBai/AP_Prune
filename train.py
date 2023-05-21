@@ -31,11 +31,11 @@ if __name__ == '__main__':
                          amp_backend="native",
                          accelerator="cuda",
                          strategy='dp',
-                         callbacks=callbacks,
+                         # callbacks=callbacks,
                          max_epochs=args.num_epoch,
                          logger=logtool,
                          enable_progress_bar=args.npbar,
                          inference_mode=False,
                          )
     trainer.fit(model)
-    model.save_model()
+    # model.save_model()
